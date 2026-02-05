@@ -88,16 +88,33 @@ interactive-timeout
 
 MYSQLCONF
 
-#Enable and Start httpd and MariaDb
+# Enable and Start httpd and MariaDb
 systemctl enable httpd.service
 systemctl enable mariadb.service
-systemctl restart httpd.service
+
+# --- MYSQL SOCKET FIX ---
+mkdir -p /var/log/mysqld
+chown -R mysql:mysql /var/log/mysqld
+
+mysql_install_db --user=mysql --basedir=/usr --datadir=/var/lib/mysql || true
+chown -R mysql:mysql /var/lib/mysql
+# --- END FIX ---
+
 systemctl restart mariadb.service
 
-#Install Perl Modules
+sleep 10
+
+for i in {1..20}; do
+  [ -S /var/lib/mysql/mysql.sock ] && break
+  echo "Waiting for mysql socket..."
+  sleep 2
+done
+
+systemctl restart httpd.service
+
+# Install Perl Modules
 
 echo "Install Perl"
-
 yum install perl-CPAN -y
 yum install perl-YAML -y
 yum install perl-libwww-perl -y
@@ -106,7 +123,6 @@ yum install perl-DBD-MySQL -y
 yum install perl-GD -y
 
 echo "Please Press ENTER for CPAN Install"
-
 yum install perl-CPAN -y
 yum install perl-YAML -y
 yum install perl-libwww-perl -y
@@ -165,8 +181,7 @@ cpanm Crypt::RC4
 cpanm Text::CSV
 cpanm Text::CSV_XS
 
-
-#Install Asterisk Perl 
+# Install Asterisk Perl 
 cd /usr/src
 wget http://download.vicidial.com/required-apps/asterisk-perl-0.08.tar.gz
 tar xzf asterisk-perl-0.08.tar.gz
@@ -176,7 +191,6 @@ make all
 make install 
 
 #Install SIPSack
-
 cd /usr/src
 wget http://download.vicidial.com/required-apps/sipsak-0.9.6-1.tar.gz
 tar -zxf sipsak-0.9.6-1.tar.gz
@@ -186,8 +200,7 @@ make
 make install
 /usr/local/bin/sipsak --version
 
-
-#Install Lame
+# Install Lame
 cd /usr/src
 wget http://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz
 tar -zxf lame-3.99.5.tar.gz
